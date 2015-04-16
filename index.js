@@ -7,8 +7,10 @@ server.connection({
   routes: {cors: true}
 });
 
+
 var plugins = [
   { register: require('./routes/user.js') },
+  { register: require('./routes/sessions.js')},
   { 
   	register: require('hapi-mongodb'),
     options: {
@@ -18,6 +20,15 @@ var plugins = [
   	  								}
     							 }
     					}
+  },
+  {
+  	register: require('yar'),
+		options: {
+			cookieOptions: {
+				password: 'password',
+				isSecure: false //you can use it without HTTPs
+			}
+		}
   }
 ];
 
