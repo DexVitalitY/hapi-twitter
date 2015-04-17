@@ -27,7 +27,7 @@ server.route([
 							return reply('Error!', err);
 						} 
 						if (matched) {
-							//Authenticate the user
+							//Authenticate the usergit 
 							function randomKeyGenerator() {
 					    return (((1+Math.random())*0x10000)|0).toString(16).substring(1); 
 					    }  
@@ -63,6 +63,34 @@ server.route([
 
 				});
   	}
+	},
+	{
+		method: 'GET',
+		path: '/authenticated',
+		handler: function(request, reply) {
+			// retreieve the session information form the browser
+			var session = request.session.get('hapi_twitter_session');
+
+			var db = request.server.plugins['hapi-mongodb'].db;
+
+			db.collection('sessions').findOne({"session_id": session.session_key}, function(err, result){
+				if (result === null) {
+					return reply({"message": "Unauthenticated"});
+				} else {
+					return reply({"message": "Authenticated"});
+				}
+			});
+		}
+	},
+	{
+		method: 'DELETE',
+		path: '/sessions',
+		handler: function(request, reply) {
+			var db = request.server.plugins['hapi-mongodb'].db;
+			var session = request.sessions.get('hapi_twitter_session');
+
+			db.collection('sessions').findOne({"session_id": session._id}).remove();
+		}
 	}
 ]);
 

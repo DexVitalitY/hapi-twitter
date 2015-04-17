@@ -30,44 +30,43 @@ exports.register = function(server, options, next) {
 	  		var newUser = request.payload.newUser;
 	  		var db = request.server.plugins['hapi-mongodb'].db;
 
-	  		Bcrypt.genSalt(10, function(err, salt){
-	  			Bcrypt.hash(newUser.password, salt, function(err, hash){
-	  				newUser.password = hash;
+				var uniqueUserQuery = {
+					$or: [
+						{ username: newUser.username},
+						{ email: newUser.email }
+					]};
 
-	  				var uniqueUserQuery = {
-	  					$or: [
-	  						{ username: newUser.username},
-	  						{ email: newUser.email },
-	  					]};
+				db.collection('users').count(uniqueUserQuery, function(err, userExist) {
+					if (userExist) {
+						return reply('User Already Exists', err);
+					} 
 
-	  				db.collection('users').count(uniqueUserQuery, function(err, userExist) {
-	  					if (userExist) {
-	  						return reply('User Already Exists', err);
-	  					} 
-	  				})	
+				Bcrypt.genSalt(10, function(err, salt){
+					Bcrypt.hash(newUser.password, salt, function(err, hash){
+						newUser.password = hash;
 
-	  				db.collection('users').insert(newUser, function(err, writeResult){
-	  					if (err) {
-	  						return reply(Hapi.error.internal('Internal MongoDB Error', err));
-	  					} else {
-	  						reply(writeResult);
-	  					}
-	  				});
-	  			});
-	  		})
-  		},
-  		validate: {
-  			payload: {
-  				newUser: {
-  					username: Joi.string().min(4).max(20).required(),
-  					email: Joi.string().email().max(50).required(),
-  					password: Joi.string().min(5).max(20).required()
-  				}
-  			}
-  		}
-  		
-  	}
-  },
+					db.collection('users').insert(newUser, function(err, writeResult){
+  					if (err) {
+  						return reply(Hapi.error.internal('Internal MongoDB Error', err));
+  					} else {
+  						return reply(writeResult);
+  					}
+  				});
+  			});
+  		});
+		})		
+	},
+	validate: {
+			payload: {
+				newUser: {
+					username: Joi.string().min(4).max(20).required(),
+					email: Joi.string().email().max(50).required(),
+					password: Joi.string().min(5).max(20).required()
+				}
+			}
+		}		
+	}
+},
   {
   	method:'GET',
   	path:'/users/{username}',
