@@ -1,5 +1,6 @@
 var Bcrypt = require('bcrypt');
 var Joi = require('joi');
+var Auth = require('./auth');
 
 
 exports.register = function(server, options, next) {
@@ -46,7 +47,7 @@ server.route([
 						  	//Yar
 
 						  	request.session.set('hapi_twitter_session', {
-						  		"session_key": randomKey,
+						  		"session_id": randomKey,
 						  		"user_id": userMongo._id
 						  	});
 
@@ -69,16 +70,8 @@ server.route([
 		path: '/authenticated',
 		handler: function(request, reply) {
 			// retreieve the session information form the browser
-			var session = request.session.get('hapi_twitter_session');
-
-			var db = request.server.plugins['hapi-mongodb'].db;
-
-			db.collection('sessions').findOne({"session_id": session.session_key}, function(err, result){
-				if (result === null) {
-					return reply({"message": "Unauthenticated"});
-				} else {
-					return reply({"message": "Authenticated"});
-				}
+			Auth.authenticated(request, function(result){
+				reply(result);
 			});
 		}
 	},
@@ -89,7 +82,15 @@ server.route([
 			var db = request.server.plugins['hapi-mongodb'].db;
 			var session = request.sessions.get('hapi_twitter_session');
 
-			db.collection('sessions').findOne({"session_id": session._id}).remove();
+			if (!session) {
+			return reply({"message" : "Already Logged Out"})
+			}
+		
+			db.collection('sessions').remove({"session_id": session.session_id },
+				function (err, writeResult){
+					if (err) { return reply('Internal MongoDV error', err); }
+					reply(writeResult);
+				});
 		}
 	}
 ]);
